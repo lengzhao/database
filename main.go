@@ -109,9 +109,9 @@ func main() {
 	flag.Parse()
 
 	svcConfig := &service.Config{
-		Name:        "GOVM Database",
-		DisplayName: "GOVM Database",
-		Description: "GOVM Database service.",
+		Name:        "govm_database",
+		DisplayName: "govm_database",
+		Description: "GOVM Database service",
 	}
 
 	prg := &program{}
