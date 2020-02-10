@@ -37,9 +37,10 @@ type Manager struct {
 }
 
 const (
-	dataFN   = "data.db"
-	flagFN   = "flag.db"
-	flagList = "flag_list"
+	dataFN     = "data.db"
+	flagFN     = "flag.db"
+	flagList   = "flag_list"
+	historyMax = 20000
 )
 
 const (
@@ -234,6 +235,13 @@ func (m *Manager) Commit(flag []byte) error {
 		c := b2.Cursor()
 		last, _ := c.Last()
 		next := atoi(last) + 1
+		if next > historyMax {
+			v := b2.Get(itoa(next - historyMax))
+			if len(v) > 0 {
+				fn := m.getHistoryFileName(v)
+				os.Remove(fn)
+			}
+		}
 		k := itoa(next)
 		return b2.Put(k, flag)
 	})

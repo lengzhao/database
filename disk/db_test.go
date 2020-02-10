@@ -2,6 +2,7 @@ package disk
 
 import (
 	"bytes"
+	"github.com/boltdb/bolt"
 	"log"
 	"os"
 	"testing"
@@ -544,5 +545,43 @@ func TestRollback4(t *testing.T) {
 	if len(v6) > 0 {
 		t.Errorf("error value,hope:null,get:%s", v6)
 		return
+	}
+}
+
+func TestBoltPut(t *testing.T) {
+	log.Println("start test:", t.Name())
+	fn := "test.db"
+	tn := []byte("test_table")
+	os.Remove(fn)
+	defer os.Remove(fn)
+	db, err := bolt.Open(fn, 0600, nil)
+	if err != nil {
+		log.Println("fail to open file:", db, err)
+		t.Fatal(err)
+	}
+	defer db.Close()
+	err = db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists(tn)
+		if err != nil {
+			log.Println("fail to create flagList.", err)
+			return err
+		}
+		b.Put(itoa(0), itoa(0))
+		return nil
+	})
+	if err != nil {
+		log.Println("fail to create table:", err)
+		t.Fatal(err)
+	}
+	for i := 1; i < 100; i++ {
+		err = db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket(tn)
+			c := b.Cursor()
+			k, _ := c.Last()
+			if atoi(k)+1 != uint64(i) {
+				t.Errorf("error data,hope:%d,get:%d", i, atoi(k)+1)
+			}
+			return b.Put(itoa(uint64(i)), itoa(uint64(i)))
+		})
 	}
 }
