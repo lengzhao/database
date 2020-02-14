@@ -18,6 +18,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+const version = "v1.0.0"
+
 var logger service.Logger
 
 type program struct {
@@ -71,10 +73,10 @@ func (p *program) run() {
 		Compress:   true, // disabled by default
 	})
 	c := loadConfig()
-	log.Println("start:", c.Address)
+	log.Println("start:", c.Address, version)
 	dbDir := path.Join(wd, "db_dir")
 	db := server.NewRPCObj(dbDir)
-	server.RegisterAPI(db, func(dir string) server.DBApi {
+	server.RegisterAPI(db, func(dir string, id uint64) server.DBApi {
 		m, err := disk.Open(dir)
 		if err != nil {
 			log.Println("fail to open db manager,dir:", dir, err)
@@ -100,6 +102,7 @@ func (p *program) run() {
 }
 func (p *program) Stop(s service.Service) error {
 	// Stop should not block. Return with a few seconds.
+	log.Println("stop...")
 	p.ln.Close()
 	return nil
 }
@@ -108,6 +111,7 @@ func main() {
 	control := flag.String("c", "", "control of service:install/start/stop/restart/uninstall")
 	flag.Parse()
 
+	log.Println("service version:", version)
 	svcConfig := &service.Config{
 		Name:        "govm_database",
 		DisplayName: "govm_database",
@@ -124,16 +128,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if *control != "" {
+	switch *control {
+	case "":
+		err = s.Run()
+		if err != nil {
+			logger.Error(err)
+		}
+	case "stat":
+		stat, err := s.Status()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("stat item: StatusUnknown:%d,StatusRunning:%d,StatusStopped:%d\n",
+			service.StatusUnknown, service.StatusRunning, service.StatusStopped)
+		log.Println("result:", stat)
+	default:
 		err = service.Control(s, *control)
 		if err != nil {
 			log.Fatal(err)
 		}
-		return
-	}
-
-	err = s.Run()
-	if err != nil {
-		logger.Error(err)
 	}
 }

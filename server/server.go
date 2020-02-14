@@ -61,7 +61,7 @@ type DBApi interface {
 }
 
 // DBFactory db factory
-type DBFactory func(dir string) DBApi
+type DBFactory func(dir string, id uint64) DBApi
 
 // NewRPCObj new rpc object
 func NewRPCObj(dir string) *TDb {
@@ -94,7 +94,7 @@ func (t *TDb) getMgr(id uint64) DBApi {
 	if out == nil {
 		dir := fmt.Sprintf("db_%d", id)
 		dir = path.Join(t.dir, dir)
-		out = t.factory(dir)
+		out = t.factory(dir, id)
 		t.mgrs[id] = out
 	}
 	return out
