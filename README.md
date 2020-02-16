@@ -1,6 +1,6 @@
 # database
 
-database with flag and can rollback
+database with flag,enable rollback data
 
 ## Build
 

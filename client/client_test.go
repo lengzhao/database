@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 	os.RemoveAll("db_dir")
 	defer os.RemoveAll("db_dir")
 	db := server.NewRPCObj("db_dir")
-	server.RegisterAPI(db, func(dir string) server.DBApi {
+	server.RegisterAPI(db, func(dir string, id uint64) server.DBApi {
 		m, err := disk.Open(dir)
 		if err != nil {
 			log.Println("fail to open db manager,dir:", dir, err)
@@ -114,7 +114,7 @@ func TestFlag(t *testing.T) {
 	}
 }
 
-func TestSetWithFlag(t *testing.T) {
+func TestSet200(t *testing.T) {
 	log.Println("start test:", t.Name())
 	c := New("tcp", serverAddr, 2)
 	defer c.Close()
@@ -135,4 +135,33 @@ func TestSetWithFlag(t *testing.T) {
 			t.Error("different value:", i)
 		}
 	}
+}
+
+func TestClose(t *testing.T) {
+	log.Println("start test:", t.Name())
+	c := New("tcp", serverAddr, 2)
+	err := c.Set(1, tbName, key1, value1)
+	if err != nil {
+		t.Fatal("fail to set.", err)
+	}
+	c.Close()
+	c = New("tcp", serverAddr, 2)
+	v := c.Get(1, tbName, key1)
+	if bytes.Compare(v, value1) != 0 {
+		t.Fatal("different value:", value1, v)
+	}
+	c.Close()
+	c = New("tcp", serverAddr, 2)
+	// fmt.Printf("success to get value:%s\n", v)
+	err = c.Set(1, tbName, key1, value2)
+	if err != nil {
+		t.Fatal("fail to set.", err)
+	}
+	c.Close()
+	c = New("tcp", serverAddr, 2)
+	v2 := c.Get(1, tbName, key1)
+	if bytes.Compare(v2, value2) != 0 {
+		t.Fatal("different value:", value2, v2)
+	}
+	c.Close()
 }

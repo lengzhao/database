@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/kardianos/service"
 	"github.com/lengzhao/database/disk"
@@ -18,7 +19,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-const version = "v1.0.0"
+const version = "v1.0.1"
 
 var logger service.Logger
 
@@ -28,7 +29,10 @@ type program struct {
 
 // Config service config
 type Config struct {
-	Address string `json:"address,omitempty"`
+	Address      string        `json:"address,omitempty"`
+	ReadTimeout  time.Duration `json:"read_timeout,omitempty"`
+	WriteTimeout time.Duration `json:"write_timeout,omitempty"`
+	IdleTimeout  time.Duration `json:"idle_timeout,omitempty"`
 }
 
 func getDir() string {
@@ -42,7 +46,7 @@ func getDir() string {
 }
 
 func loadConfig() Config {
-	out := Config{"127.0.0.1:9191"}
+	out := Config{Address: "127.0.0.1:9191"}
 	data, err := ioutil.ReadFile(path.Join(getDir(), "conf.json"))
 	if err != nil {
 		log.Println("fail to read file,conf.json")
@@ -93,7 +97,13 @@ func (p *program) run() {
 		return
 	}
 	p.ln = l
-	err := http.Serve(l, nil)
+	hs := &http.Server{
+		Addr:         c.Address,
+		ReadTimeout:  c.ReadTimeout * time.Second,
+		WriteTimeout: c.WriteTimeout * time.Second,
+		IdleTimeout:  c.IdleTimeout * time.Second,
+	}
+	err := hs.Serve(l)
 	if err != nil {
 		log.Println("fail to serve rpc:", c.Address, err)
 	}
