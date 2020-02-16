@@ -60,8 +60,10 @@ func New(addrType, serverAddr string, clientNum int) *Client {
 func (c *Client) Close() {
 	for i := 0; i < len(c.client); i++ {
 		id := <-c.lock
-		c.client[id].Close()
-		c.client[id] = nil
+		if c.client[id] != nil {
+			c.client[id].Close()
+			c.client[id] = nil
+		}
 	}
 }
 
@@ -72,13 +74,17 @@ func (c *Client) OpenFlag(chain uint64, flag []byte) error {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return err
+		}
 	}
 
 	args := FlagArgs{chain, flag}
 	var reply bool
 	err = c.client[id].Call("TDb.OpenFlag", &args, &reply)
 	if err != nil {
-		log.Println("fail to OpenFlag:", err)
+		log.Println("fail to OpenFlag:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return err
@@ -94,12 +100,16 @@ func (c *Client) GetLastFlag(chain uint64) []byte {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return nil
+		}
 	}
 
 	var reply = make([]byte, 100)
 	err = c.client[id].Call("TDb.GetLastFlag", &chain, &reply)
 	if err != nil {
-		log.Println("fail to GetLastFlag:", err)
+		log.Println("fail to GetLastFlag:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return nil
@@ -114,13 +124,17 @@ func (c *Client) Commit(chain uint64, flag []byte) error {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return err
+		}
 	}
 
 	args := FlagArgs{chain, flag}
 	var reply bool
 	err = c.client[id].Call("TDb.CommitFlag", &args, &reply)
 	if err != nil {
-		log.Println("fail to CommitFlag:", err)
+		log.Println("fail to CommitFlag:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return err
@@ -136,6 +150,10 @@ func (c *Client) Cancel(chain uint64, flag []byte) error {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return err
+		}
 	}
 
 	args := FlagArgs{chain, flag}
@@ -158,13 +176,17 @@ func (c *Client) Rollback(chain uint64, flag []byte) error {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return err
+		}
 	}
 
 	args := FlagArgs{chain, flag}
 	var reply bool
 	err = c.client[id].Call("TDb.Rollback", &args, &reply)
 	if err != nil {
-		log.Println("fail to Rollback:", err)
+		log.Println("fail to Rollback:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return err
@@ -180,13 +202,17 @@ func (c *Client) Set(chain uint64, tbName, key, value []byte) error {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return err
+		}
 	}
 
 	args := SetArgs{chain, tbName, key, value}
 	var reply bool
 	err = c.client[id].Call("TDb.Set", &args, &reply)
 	if err != nil {
-		log.Println("fail to TDb.Set:", err)
+		log.Println("fail to TDb.Set:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return err
@@ -204,13 +230,17 @@ func (c *Client) SetWithFlag(chain uint64, flag, tbName, key, value []byte) erro
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return err
+		}
 	}
 
 	args := SetWithFlagArgs{chain, flag, tbName, key, value}
 	var reply bool
 	err = c.client[id].Call("TDb.SetWithFlag", &args, &reply)
 	if err != nil {
-		log.Println("fail to TDb.SetWithFlag:", err)
+		log.Println("fail to TDb.SetWithFlag:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return err
@@ -226,13 +256,17 @@ func (c *Client) Get(chain uint64, tbName, key []byte) []byte {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return nil
+		}
 	}
 
 	args := GetArgs{chain, tbName, key}
 	var reply = make([]byte, 65536)
 	err = c.client[id].Call("TDb.Get", &args, &reply)
 	if err != nil {
-		log.Println("fail to TDb.Get:", err)
+		log.Println("fail to TDb.Get:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return nil
@@ -248,13 +282,17 @@ func (c *Client) GetNextKey(chain uint64, tbName, preKey []byte) []byte {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return nil
+		}
 	}
 
 	args := GetArgs{chain, tbName, preKey}
 	var reply = make([]byte, 500)
 	err = c.client[id].Call("TDb.GetNextKey", &args, &reply)
 	if err != nil {
-		log.Println("fail to TDb.GetNextKey:", err)
+		log.Println("fail to TDb.GetNextKey:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return nil
@@ -270,13 +308,17 @@ func (c *Client) Exist(chain uint64, tbName, key []byte) bool {
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
+		if err != nil {
+			log.Println("fail to DialHTTP.", c.addrType, c.dbServer, err)
+			return false
+		}
 	}
 
 	args := GetArgs{chain, tbName, key}
 	var reply bool
 	err = c.client[id].Call("TDb.Exist", &args, &reply)
 	if err != nil {
-		log.Println("fail to TDb.Exist:", err)
+		log.Println("fail to TDb.Exist:", c.addrType, c.dbServer, err)
 		c.client[id].Close()
 		c.client[id] = nil
 		return false
