@@ -65,12 +65,16 @@ func (c *Client) Close() {
 			c.client[id] = nil
 		}
 	}
+	close(c.lock)
 }
 
 // OpenFlag 开启标志，标志用于记录操作，支持批量操作的回滚
 func (c *Client) OpenFlag(chain uint64, flag []byte) error {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -96,7 +100,10 @@ func (c *Client) OpenFlag(chain uint64, flag []byte) error {
 // GetLastFlag 获取最后一个标志
 func (c *Client) GetLastFlag(chain uint64) []byte {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -120,7 +127,10 @@ func (c *Client) GetLastFlag(chain uint64) []byte {
 // Commit 提交，将数据写入磁盘，标志清除
 func (c *Client) Commit(chain uint64, flag []byte) error {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -146,7 +156,10 @@ func (c *Client) Commit(chain uint64, flag []byte) error {
 // Cancel 取消提交，将数据回滚
 func (c *Client) Cancel(chain uint64, flag []byte) error {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -172,7 +185,10 @@ func (c *Client) Cancel(chain uint64, flag []byte) error {
 // Rollback 将指定标志之后的所有操作回滚，要求当前没有开启标志
 func (c *Client) Rollback(chain uint64, flag []byte) error {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -198,7 +214,10 @@ func (c *Client) Rollback(chain uint64, flag []byte) error {
 // Set 存储数据，不携带标签，不会被回滚,tbName中的数据都别用SetWithFlag写，否则可能导致数据混乱
 func (c *Client) Set(chain uint64, tbName, key, value []byte) error {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -226,7 +245,10 @@ func (c *Client) Set(chain uint64, tbName, key, value []byte) error {
 // 同时记录本标签最终设置的值，方便回滚
 func (c *Client) SetWithFlag(chain uint64, flag, tbName, key, value []byte) error {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -252,7 +274,10 @@ func (c *Client) SetWithFlag(chain uint64, flag, tbName, key, value []byte) erro
 // Get 获取数据
 func (c *Client) Get(chain uint64, tbName, key []byte) []byte {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -278,7 +303,10 @@ func (c *Client) Get(chain uint64, tbName, key []byte) []byte {
 // GetNextKey get next key
 func (c *Client) GetNextKey(chain uint64, tbName, preKey []byte) []byte {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)
@@ -304,7 +332,10 @@ func (c *Client) GetNextKey(chain uint64, tbName, preKey []byte) []byte {
 // Exist 数据是否存在
 func (c *Client) Exist(chain uint64, tbName, key []byte) bool {
 	var err error
-	id := <-c.lock
+	id, ok := <-c.lock
+	if !ok {
+		panic("client closed")
+	}
 	defer func() { c.lock <- id }()
 	if c.client[id] == nil {
 		c.client[id], err = rpc.DialHTTP(c.addrType, c.dbServer)

@@ -165,3 +165,18 @@ func TestClose(t *testing.T) {
 	}
 	c.Close()
 }
+
+func TestGet(t *testing.T) {
+	log.Println("start test:", t.Name())
+	c := New("tcp", serverAddr, 2)
+	defer c.Close()
+	err := c.Set(1, tbName, key1, value1)
+	if err != nil {
+		t.Fatal("fail to set.", err)
+	}
+	v := c.Get(1, tbName, key1)
+	if bytes.Compare(v, value1) != 0 {
+		t.Fatal("different value:", value1, v)
+	}
+	c.Commit(1, tbName)
+}

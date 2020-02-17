@@ -19,7 +19,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-const version = "v1.0.1"
+const version = "v1.0.3"
 
 var logger service.Logger
 
@@ -46,7 +46,7 @@ func getDir() string {
 }
 
 func loadConfig() Config {
-	out := Config{Address: "127.0.0.1:9191"}
+	out := Config{Address: "127.0.0.1:17777"}
 	data, err := ioutil.ReadFile(path.Join(getDir(), "conf.json"))
 	if err != nil {
 		log.Println("fail to read file,conf.json")
