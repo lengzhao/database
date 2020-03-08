@@ -364,12 +364,17 @@ func (m *Manager) Cancel(flag []byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if len(m.flag) == 0 {
+		rfn := m.getHistoryFileName(flag)
+		os.Remove(rfn)
+		log.Println("not open flag,cancel:", rfn)
 		return fmt.Errorf("not open flag")
 	}
 	if bytes.Compare(flag, m.flag) != 0 {
-		log.Println("try to commit different flag,")
+		log.Println("try to cancel different flag")
 		return fmt.Errorf("different flag")
 	}
+	rfn := m.getHistoryFileName(flag)
+	defer os.Remove(rfn)
 
 	tx2, err := m.dataDb.Begin(true)
 	if err != nil {
