@@ -361,14 +361,13 @@ func (m *Manager) Commit(flag []byte) error {
 
 // Cancel cancel flag,not write to disk
 func (m *Manager) Cancel(flag []byte) error {
+	if len(m.flag) == 0 {
+		log.Printf("[warning]not open flag when cancel:%x\n", flag)
+		return m.Rollback(flag)
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if len(m.flag) == 0 {
-		rfn := m.getHistoryFileName(flag)
-		os.Remove(rfn)
-		log.Println("not open flag,cancel:", rfn)
-		return fmt.Errorf("not open flag")
-	}
 	if bytes.Compare(flag, m.flag) != 0 {
 		log.Println("try to cancel different flag")
 		return fmt.Errorf("different flag")
