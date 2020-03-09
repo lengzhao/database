@@ -585,3 +585,93 @@ func TestBoltPut(t *testing.T) {
 		})
 	}
 }
+
+func TestCancel(t *testing.T) {
+	log.Println("start test:", t.Name())
+	defer os.RemoveAll(testDir)
+	os.RemoveAll(testDir)
+	m, err := Open(testDir)
+	if err != nil {
+		t.Error("fail to open dir")
+		return
+	}
+	err = m.OpenFlag(flag)
+	if err != nil {
+		t.Error("fail to open flag.", err)
+		return
+	}
+
+	err = m.SetWithFlag(flag, tbName, key, value)
+	if err != nil {
+		t.Error("fail to set data.", err)
+		return
+	}
+	v := m.Get(tbName, key)
+	if bytes.Compare(v, value) != 0 {
+		t.Errorf("different value,hope:%s,get:%s", value, v)
+		return
+	}
+	m.Cancel(flag)
+	m.Close()
+
+	m2, err := Open(testDir)
+	if err != nil {
+		t.Error("fail to open dir")
+		return
+	}
+	v2 := m2.Get(tbName, key)
+	if len(v2) != 0 {
+		t.Errorf("different value,hope:nil,get:%s", v2)
+		return
+	}
+	m2.Close()
+}
+
+func TestCancel2(t *testing.T) {
+	log.Println("start test:", t.Name())
+	defer os.RemoveAll(testDir)
+	os.RemoveAll(testDir)
+	m, err := Open(testDir)
+	if err != nil {
+		t.Error("fail to open dir")
+		return
+	}
+	err = m.OpenFlag(flag)
+	if err != nil {
+		t.Error("fail to open flag.", err)
+		return
+	}
+
+	err = m.SetWithFlag(flag, tbName, key, value)
+	if err != nil {
+		t.Error("fail to set data.", err)
+		return
+	}
+	v := m.Get(tbName, key)
+	if bytes.Compare(v, value) != 0 {
+		t.Errorf("different value,hope:%s,get:%s", value, v)
+		return
+	}
+	//commit then cancel, hope: commit success, fail to cancel
+	err = m.Commit(flag)
+	if err != nil {
+		t.Error(err)
+	}
+	err = m.Cancel(flag)
+	if err == nil {
+		t.Error("hope return error")
+	}
+	m.Close()
+
+	m2, err := Open(testDir)
+	if err != nil {
+		t.Error("fail to open dir")
+		return
+	}
+	v2 := m2.Get(tbName, key)
+	if bytes.Compare(v2, value) != 0 {
+		t.Errorf("different value,hope:%s,get:%s", value, v2)
+		return
+	}
+	m2.Close()
+}
