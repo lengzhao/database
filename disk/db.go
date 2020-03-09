@@ -362,8 +362,7 @@ func (m *Manager) Commit(flag []byte) error {
 // Cancel cancel flag,not write to disk
 func (m *Manager) Cancel(flag []byte) error {
 	if len(m.flag) == 0 {
-		log.Printf("[warning]not open flag when cancel:%x\n", flag)
-		return m.Rollback(flag)
+		return fmt.Errorf("not open flag")
 	}
 
 	m.mu.Lock()
