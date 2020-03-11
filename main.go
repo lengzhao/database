@@ -114,6 +114,7 @@ func (p *program) Stop(s service.Service) error {
 	// Stop should not block. Return with a few seconds.
 	log.Println("stop...")
 	p.ln.Close()
+	<-time.After(time.Second * 10)
 	return nil
 }
 
@@ -144,6 +145,7 @@ func main() {
 		if err != nil {
 			logger.Error(err)
 		}
+		s.Stop()
 	case "stat":
 		stat, err := s.Status()
 		if err != nil {
