@@ -416,6 +416,7 @@ func (m *Manager) Rollback(flag []byte) error {
 		c := b.Cursor()
 		_, v := c.Last()
 		if bytes.Compare(v, flag) != 0 {
+			log.Printf("different last flag,hope(in db):%x,input:%x\n",v,flag)
 			return fmt.Errorf("not last flag")
 		}
 		return nil
