@@ -548,6 +548,106 @@ func TestRollback4(t *testing.T) {
 	}
 }
 
+func TestRollback5(t *testing.T) {
+	log.Println("start test:", t.Name())
+	defer os.RemoveAll(testDir)
+	os.RemoveAll(testDir)
+	m, err := Open(testDir)
+	if err != nil {
+		t.Error("fail to open dir")
+		return
+	}
+	err = m.OpenFlag(flag)
+	if err != nil {
+		t.Error("fail to open flag.", err)
+		return
+	}
+
+	err = m.SetWithFlag(flag, tbName, key, value)
+	if err != nil {
+		t.Error("fail to set data.", err)
+		return
+	}
+	v := m.Get(tbName, key)
+	if bytes.Compare(v, value) != 0 {
+		t.Errorf("different value,hope:%s,get:%s", value, v)
+		return
+	}
+	m.Commit(flag)
+
+	// flag2
+	err = m.OpenFlag(flag2)
+	if err != nil {
+		t.Error("fail to open flag.", err)
+		return
+	}
+
+	err = m.SetWithFlag(flag2, tbName, key, nil)
+	if err != nil {
+		t.Error("fail to set data.", err)
+		return
+	}
+	v2 := m.Get(tbName, key)
+	if len(v2) != 0 {
+		t.Errorf("different value,hope:%s,get:%s", value, v2)
+		return
+	}
+	m.Commit(flag2)
+
+	// flag3
+	err = m.OpenFlag(flag3)
+	if err != nil {
+		t.Error("fail to open flag.", err)
+		return
+	}
+
+	err = m.SetWithFlag(flag3, tbName, key, value3)
+	if err != nil {
+		t.Error("fail to set data.", err)
+		return
+	}
+	v3 := m.Get(tbName, key)
+	if bytes.Compare(v3, value3) != 0 {
+		t.Errorf("different value,hope:%s,get:%s", value, v3)
+		return
+	}
+	m.Commit(flag3)
+	m.Close()
+
+	m2, err := Open(testDir)
+	if err != nil {
+		t.Error("fail to open dir")
+		return
+	}
+	defer m2.Close()
+
+	m2.Rollback(flag3)
+	v4 := m2.Get(tbName, key)
+	if len(v4) != 0 {
+		t.Errorf("different value,hope:nil,get:%s", v4)
+		return
+	}
+	exist := m2.Exist(tbName, key)
+	if exist {
+		t.Errorf("hope:not exist")
+		return
+	}
+
+	m2.Rollback(flag2)
+	v5 := m2.Get(tbName, key)
+	if bytes.Compare(v5, value) != 0 {
+		t.Errorf("different value,hope:%s,get:%s", value, v5)
+		return
+	}
+
+	m2.Rollback(flag)
+	v6 := m2.Get(tbName, key)
+	if len(v6) > 0 {
+		t.Errorf("error value,hope:null,get:%s", v6)
+		return
+	}
+}
+
 func TestBoltPut(t *testing.T) {
 	log.Println("start test:", t.Name())
 	fn := "test.db"

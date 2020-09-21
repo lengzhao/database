@@ -37,10 +37,10 @@ type Manager struct {
 }
 
 const (
-	dataFN     = "data.db"
-	flagFN     = "flag.db"
-	flagList   = "flag_list"
-	historyMax = 20000
+	dataFN   = "data.db"
+	flagFN   = "flag.db"
+	flagList = "flag_list"
+	fileMode = 0666
 )
 
 const (
@@ -48,6 +48,9 @@ const (
 	ltnFlag
 	ltnPreValue
 )
+
+// HistoryMax the number of history files(rollback times)
+var HistoryMax uint64 = 2000
 
 // Open open manager,if not exist,create it
 func Open(dir string) (*Manager, error) {
@@ -58,18 +61,18 @@ func Open(dir string) (*Manager, error) {
 	out.cache = make(map[memKey]*memValue)
 	_, err := os.Stat(dir)
 	if os.IsNotExist(err) {
-		err = os.Mkdir(dir, 0600)
+		err = os.Mkdir(dir, fileMode)
 		if err != nil {
 			log.Println("create dir:", dir, err)
 			return nil, err
 		}
 	}
-	out.dataDb, err = bolt.Open(path.Join(dir, dataFN), 0600, nil)
+	out.dataDb, err = bolt.Open(path.Join(dir, dataFN), fileMode, nil)
 	if err != nil {
 		log.Println("fail to open file:", dir, dataFN, err)
 		return nil, err
 	}
-	out.flagDb, err = bolt.Open(path.Join(dir, flagFN), 0600, nil)
+	out.flagDb, err = bolt.Open(path.Join(dir, flagFN), fileMode, nil)
 	if err != nil {
 		out.dataDb.Close()
 		log.Println("fail to open file:", dir, flagFN, err)
@@ -235,8 +238,8 @@ func (m *Manager) Commit(flag []byte) error {
 		c := b2.Cursor()
 		last, _ := c.Last()
 		next := atoi(last) + 1
-		if next > historyMax {
-			v := b2.Get(itoa(next - historyMax))
+		if next > HistoryMax {
+			v := b2.Get(itoa(next - HistoryMax))
 			if len(v) > 0 {
 				fn := m.getHistoryFileName(v)
 				os.Remove(fn)
@@ -251,7 +254,7 @@ func (m *Manager) Commit(flag []byte) error {
 	}
 	// write data to file for rollback
 	rfn := m.getHistoryFileName(flag)
-	history, err := bolt.Open(rfn, 0600, nil)
+	history, err := bolt.Open(rfn, fileMode, nil)
 	if err != nil {
 		log.Println("fail to open flag file:", rfn, err)
 		return err
@@ -416,7 +419,7 @@ func (m *Manager) Rollback(flag []byte) error {
 		c := b.Cursor()
 		_, v := c.Last()
 		if bytes.Compare(v, flag) != 0 {
-			log.Printf("different last flag,hope(in db):%x,input:%x\n",v,flag)
+			log.Printf("different last flag,hope(in db):%x,input:%x\n", v, flag)
 			return fmt.Errorf("not last flag")
 		}
 		return nil
@@ -434,7 +437,7 @@ func (m *Manager) Rollback(flag []byte) error {
 	defer tx2.Rollback()
 	rfn := m.getHistoryFileName(flag)
 	defer os.Remove(rfn)
-	history, err := bolt.Open(rfn, 0600, nil)
+	history, err := bolt.Open(rfn, fileMode, nil)
 	if err != nil {
 		log.Println("fail to open flag file:", rfn, err)
 		return err
@@ -537,6 +540,9 @@ func (m *Manager) Set(tbName, key, value []byte) error {
 		if err != nil {
 			log.Printf("fail to create bucket,%s\n", tbName)
 			return err
+		}
+		if len(value) == 0 {
+			return b.Delete(key)
 		}
 		err = b.Put(key, value)
 		if err != nil {

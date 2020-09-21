@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -24,7 +25,8 @@ const version = "v1.0.3"
 var logger service.Logger
 
 type program struct {
-	ln net.Listener
+	ln     net.Listener
+	closed chan bool
 }
 
 // Config service config
@@ -62,6 +64,7 @@ func loadConfig() Config {
 
 func (p *program) Start(s service.Service) error {
 	// Start should not block. Do the actual work async.
+	p.closed = make(chan bool, 1)
 	go p.run()
 	return nil
 }
@@ -109,12 +112,17 @@ func (p *program) run() {
 	}
 	server.CloseRPCObj(db)
 	log.Println("stop:", c.Address)
+	p.closed <- true
 }
 func (p *program) Stop(s service.Service) error {
 	// Stop should not block. Return with a few seconds.
-	log.Println("stop...")
+	fmt.Println("stopping.(wait 5second)")
 	p.ln.Close()
-	<-time.After(time.Second * 10)
+	select {
+	case <-p.closed:
+	case <-time.After(time.Second * 5):
+	}
+
 	return nil
 }
 
