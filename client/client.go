@@ -56,6 +56,11 @@ func New(addrType, serverAddr string, clientNum int) *Client {
 	return out
 }
 
+// GetAddress get address info
+func (c *Client) GetAddress() (addrType, address string) {
+	return c.addrType, c.dbServer
+}
+
 // Close close client
 func (c *Client) Close() {
 	for i := 0; i < len(c.client); i++ {
